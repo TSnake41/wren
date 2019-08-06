@@ -1584,6 +1584,7 @@ WrenType wrenGetSlotType(WrenVM* vm, int slot)
   validateApiSlot(vm, slot);
   if (IS_BOOL(vm->apiStack[slot])) return WREN_TYPE_BOOL;
   if (IS_NUM(vm->apiStack[slot])) return WREN_TYPE_NUM;
+  if (IS_CLASS(vm->apiStack[slot])) return WREN_TYPE_CLASS;
   if (IS_FOREIGN(vm->apiStack[slot])) return WREN_TYPE_FOREIGN;
   if (IS_LIST(vm->apiStack[slot])) return WREN_TYPE_LIST;
   if (IS_NULL(vm->apiStack[slot])) return WREN_TYPE_NULL;
@@ -1774,4 +1775,56 @@ void* wrenGetUserData(WrenVM* vm)
 void wrenSetUserData(WrenVM* vm, void* userData)
 {
 	vm->config.userData = userData;
+}
+
+const char* wrenGetSlotTypeName(WrenVM* vm, int slot)
+{
+  validateApiSlot(vm, slot);
+
+  ObjClass *classObj = wrenGetClass(vm, vm->apiStack[slot]);
+	return classObj->name->value;
+}
+
+void wrenGetSlotClass(WrenVM* vm, int slot, int classSlot)
+{
+  validateApiSlot(vm, slot);
+  validateApiSlot(vm, classSlot);
+
+  ObjClass *classObj = wrenGetClass(vm, vm->apiStack[slot]);
+	setSlot(vm, classSlot, OBJ_VAL(classObj));
+}
+
+// Check if objClass is a subclass of baseClassObj.
+// Does not invoke overloaded "is" operator.
+static bool isInstance(ObjClass* classObj, ObjClass* baseClassObj)
+{
+  do {
+    if (baseClassObj == classObj)
+      return true;
+
+    classObj = classObj->superclass;
+  } while (classObj != NULL);
+
+  return false;
+}
+
+bool wrenGetIsInstance(WrenVM* vm, int slot, int classSlot)
+{
+  validateApiSlot(vm, slot);
+  validateApiSlot(vm, classSlot);
+  ASSERT(IS_CLASS(vm->apiStack[slot]), "Slot must hold a class object.");
+
+  return isInstance(wrenGetClass(vm, vm->apiStack[slot]), AS_CLASS(vm->apiStack[classSlot]));
+}
+
+bool wrenGetIsInstanceHandle(WrenVM* vm, int slot, WrenHandle* classHandle)
+{
+  validateApiSlot(vm, slot);
+
+  ASSERT(classHandle != NULL, "Class handle cannot be null.");
+  ASSERT(IS_CLASS(classHandle->value), "Class handle must hold a class object.");
+
+  ObjClass *classObj = wrenGetClass(vm, vm->apiStack[slot]);
+  ObjClass *baseClassObj = AS_CLASS(classHandle->value);
+  return isInstance(classObj, baseClassObj);
 }

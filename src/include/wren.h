@@ -261,6 +261,7 @@ typedef enum
 {
   WREN_TYPE_BOOL,
   WREN_TYPE_NUM,
+  WREN_TYPE_CLASS,
   WREN_TYPE_FOREIGN,
   WREN_TYPE_LIST,
   WREN_TYPE_NULL,
@@ -484,5 +485,27 @@ void* wrenGetUserData(WrenVM* vm);
 
 // Sets user data associated with the WrenVM.
 void wrenSetUserData(WrenVM* vm, void* userData);
+
+// Return the type name of the object in [slot].
+//
+// The memory for the returned string is owned by Wren. You can inspect it
+// while in your foreign method, but cannot keep a pointer to it after the
+// function returns, since it could be invalid after GC.
+const char* wrenGetSlotTypeName(WrenVM* vm, int slot);
+
+// Store the type object of the object in [slot] and store it in [classSlot].
+void wrenGetSlotClass(WrenVM* vm, int slot, int classSlot);
+
+// Checks if the object in [slot] is an instance of the type in [classSlot].
+// Does not invoke any overloaded "is" operator.
+//
+// It is an error to call this if [classSlot] does not contain a class object.
+bool wrenGetIsInstance(WrenVM* vm, int slot, int classSlot);
+
+// Checks if the object in [slot] is an instance of the type captured in
+// [handle]. Does not invoke any overloaded "is" operator.
+//
+// It is an error to call this if the [handle] does not capture a class object.
+bool wrenGetIsInstanceHandle(WrenVM* vm, int slot, WrenHandle* handle);
 
 #endif
